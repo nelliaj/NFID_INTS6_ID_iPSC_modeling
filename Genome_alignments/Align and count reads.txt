@@ -1,5 +1,5 @@
 ## STAR/2.7.10b-GCC-11.3.0 to align sequence reads
-
+#
 ## To make genome reference
 
 STAR --runMode genomeGenerate \
