@@ -1,0 +1,40 @@
+## STAR/2.7.10b-GCC-11.3.0 to align sequence reads
+
+## To make genome reference
+
+STAR --runMode genomeGenerate \
+     --runThreadN $SLURM_CPUS_PER_TASK \
+     --genomeDir "/path/to/GENOME_HsaRnoMmu/" \
+     --genomeFastaFiles "/path/to/GENOME_FILES/HsaRnoMmu.fa" \
+     --sjdbGTFfile "/path/to/GENOME_FILES/human_rat_repositionedmouseNeurog2.gtf" \
+     --sjdbOverhang 100
+
+## Align reads
+
+# Define R1 and R2 fastq file pairs:
+paste <(ls *_R1.fastq.gz | sort) <(ls *_R2.fastq.gz | sort) > filepairs.txt
+
+while read R1 R2
+do
+    PREFIX=$(basename "$R1" _R1.fastq.gz)
+
+    STAR --runThreadN "$SLURM_CPUS_PER_TASK" \
+         --genomeDir "/path/to/GENOME_HsaRnoMmu" \
+         --readFilesIn "$R1" "$R2" \
+         --readFilesCommand zcat \
+         --outFileNamePrefix "${PREFIX}." \
+         --outSAMtype BAM SortedByCoordinate
+done < filepairs.txt
+
+## Count exon-aligned reads per gene with Subread 1.6.3 (build ha92aebf_0, channel bioconda/label/cf201901)
+
+for BAM in /path/to/bams/*.Aligned.sortedByCoord.out.bam
+do
+    PREFIX=$(basename "$BAM" .Aligned.sortedByCoord.out.bam)
+
+    featureCounts -p -t exon -g gene_id -s 2 \
+      -a "/path/to/human_rat_repositionedmouseNeurog2.gtf" \
+      -o "counts.${PREFIX}.txt" \
+      "$BAM"
+done
+

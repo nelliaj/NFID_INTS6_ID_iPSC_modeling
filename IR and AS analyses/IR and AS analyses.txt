@@ -1,0 +1,59 @@
+
+#################### IR
+# RFinder v 2.0.0 to assess intron retention in cases and controls:
+# https://github.com/RitchieLabIGH/IRFinder
+
+# Make reference
+
+singularity run IRFinder BuildRefProc -r ReferenceDir ftp://ftp.ensembl.org/pub/release-111/gtf/homo_sapiens/Homo_sapiens.GRCh38.111.gtf.gz
+
+# Prepare data from BAM files
+
+for i in /path/to/*.bam
+do
+  PREFIX=$(basename "$i" .Aligned.sortedByCoord.out.bam)
+  echo "processing file $i"
+  singularity run IRFinder BAM -r ReferenceDir $i
+  mkdir "IRFs.${PREFIX}" 
+  mv IRFinder-* "IRFs.${PREFIX}"/
+done
+
+# Run differential IR analysis separately for samples from each timepoint:
+
+singularity run IRFinder Diff -v -wl 4 -m [deseq|empirical] \
+  -g:CASE /path/to/CASES_d[0|4|28]/*/IRFinder-IR-dir.txt \
+  -g:CONTROL /path/to/CONTROLS_d[0|4|28]/*/IRFinder-IR-dir.txt \
+  -o ./Diff_d[0|4|28]
+
+
+
+#################### AS
+# Leafcutter 0.2.9 to analyze group differences in alternative splicing.
+## NOTE: prior running Leafcutter remove other than human aligned reads and mask duplicate reads.
+## The code follows instructions in https://davidaknowles.github.io/leafcutter/articles/Usage.html
+
+# Create junction files from all bam, separately for each time point day<0/4/28>:
+
+for BAM in /path/to/*.bam
+do
+    echo "Converting $BAM to $BAM.junc"
+    /path/to/regtools junctions extract -a 8 -m 50 -M 500000 -s RF $BAM -o $BAM.junc
+    echo $BAM.junc >> day[0|4|28].txt
+done
+
+# Cluster introns for d0 and d4 samples which don't have astrocytes (and so have larger human libraries):
+
+python /path/to/leafcutter/clustering/leafcutter_cluster_regtools.py -j /path/to/d0.txt -m 50 -o day0caseVScon -l 500000
+python /path/to/leafcutter/clustering/leafcutter_cluster_regtools.py -j /path/to/d4.txt -m 50 -o day4caseVScon -l 500000
+
+# Cluster introns for d28 samples which have astrocytes, less reads required to support junction:
+
+python /path/to/leafcutter/clustering/leafcutter_cluster_regtools.py -j /path/to/d28.txt -m 20 -o day28caseVScon -l 500000
+
+# Test for differential splicing:
+## Before this use the Leafcutter helper script gtf_to_exons.R to convert GTF
+## to the required format. Here "hsa113.txt.gz" was made from Homo_sapiens.GRCh38.113.gtf.gz
+## day[0|4|28]_groups.txt files define cases and controls.
+
+/path/to/leafcutter/scripts/leafcutter_ds.R -e /path/to/hsa113.txt.gz /path/to/day0|4|28]caseVScon_perind_numers.counts.gz /path/to/day[0|4|28]_groups.txt
+
