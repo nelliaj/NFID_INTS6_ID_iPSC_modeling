@@ -32,7 +32,7 @@ singularity run IRFinder Diff -v -wl 4 -m [deseq|empirical] \
 ## NOTE: prior running Leafcutter remove other than human aligned reads and mask duplicate reads.
 ## The code follows instructions in https://davidaknowles.github.io/leafcutter/articles/Usage.html
 
-# Create junction files from all bam, separately for each time point day<0/4/28>:
+# Create junction files from all bam, separately for each time point day[0|4|28] :
 
 for BAM in /path/to/*.bam
 do
