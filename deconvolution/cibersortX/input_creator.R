@@ -179,21 +179,4 @@ write.table(
   row.names = TRUE
 )
 
-#abbreviation2
-
-matrixCounts_to_export <- obj@assays$RNA["counts"]
-
-colnames(matrixCounts_to_export) <- unname(obj$abbreviation2[match(colnames(matrixCounts_to_export), rownames(obj@meta.data))])
-
-matrixCounts_to_export <- as.matrix(matrixCounts_to_export)
-
-write.table(
-  matrixCounts_to_export,
-  file = "deconvolution/cibersortx/input/d28_snapseed_scRNAseq_collapsed.txt",
-  sep = "\t",
-  quote = FALSE,
-  col.names = TRUE,
-  row.names = TRUE
-)
-
 
